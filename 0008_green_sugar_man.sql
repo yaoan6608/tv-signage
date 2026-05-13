@@ -1,0 +1,1 @@
+ALTER TABLE `display_layout` MODIFY COLUMN `carouselMode` enum('single','2items','3items','6items','8items','static') NOT NULL DEFAULT '6items';

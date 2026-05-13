@@ -1,0 +1,1 @@
+ALTER TABLE `display_layout` ADD `animationType` enum('fade','slide') DEFAULT 'fade' NOT NULL;

@@ -2,168 +2,195 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>AI 雲端互動看板 - 德叔專製版</title>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    
+    <title>德叔旗艦看板 - 菜單展示版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&family=Oswald:wght@600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg-dark: #1a0f0a; --accent: #ffb703; }
-        * { cursor: none !important; } /* 看板模式隱藏滑鼠 */
-        body { margin: 0; background: var(--bg-dark); font-family: "Microsoft JhengHei", sans-serif; overflow: hidden; color: white; }
-        #container { display: flex; height: 100vh; width: 100vw; }
-
-        /* 左側圖片區 */
-        .food-section { width: 60%; background: #000; overflow: hidden; display: flex; align-items: center; justify-content: center; }
-        #bentoImg { width: 100%; height: 100%; object-fit: cover; transition: opacity 0.5s; }
-
-        /* 右側資訊區 */
-        .info-panel {
-            width: 40%; padding: 60px; display: flex; flex-direction: column; justify-content: center;
-            background: linear-gradient(135deg, #2c1e16, #4a3427); position: relative;
+        :root {
+            --primary-gold: #ffb703;
+            --bg-dark: #0a0a0a;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --text-main: #ffffff;
         }
 
-        h1 { font-size: 3.5em; color: #faedcd; margin: 0 0 10px 0; }
-        .price-tag { font-size: 2.5em; color: var(--accent); margin-bottom: 20px; font-weight: bold; }
-        .description { font-size: 1.4em; line-height: 1.6; color: #ddd; margin-bottom: 40px; }
-        
-        .vote-counter { 
-            font-size: 2.5em; background: rgba(255,255,255,0.1); padding: 20px; 
-            border-radius: 15px; border: 1px solid rgba(255,255,255,0.2); width: fit-content;
+        body, html { margin: 0; padding: 0; height: 100%; background: var(--bg-dark); font-family: 'Noto Sans TC', sans-serif; overflow: hidden; color: var(--text-main); }
+
+        /* 全螢幕容器 */
+        #main-container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
         }
 
-        #statusText { position: absolute; bottom: 20px; left: 60px; font-size: 1.2em; color: #888; }
-        #camera-view { position: fixed; bottom: 20px; right: 20px; width: 200px; transform: scaleX(-1); border-radius: 10px; opacity: 0.3; }
+        /* --- 左側 1/3：動態輪播區 --- */
+        .carousel-section {
+            width: 33.33%;
+            height: 100%;
+            position: relative;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            border-right: 2px solid rgba(255,183,3,0.3);
+            overflow: hidden;
+        }
+
+        .hero-image-wrap { height: 65%; width: 100%; overflow: hidden; }
+        #hero-img { width: 100%; height: 100%; object-fit: cover; transition: 0.8s ease; }
+
+        .hero-info {
+            height: 35%; padding: 30px; box-sizing: border-box;
+            background: linear-gradient(to bottom, #111, #000);
+            display: flex; flex-direction: column; justify-content: center;
+        }
+
+        #hero-tag { background: var(--primary-gold); color: #000; padding: 5px 15px; border-radius: 4px; font-weight: 900; align-self: flex-start; margin-bottom: 10px; }
+        #hero-name { font-size: 2.8rem; margin: 5px 0; font-weight: 900; color: var(--primary-gold); }
+        #hero-price { font-size: 3.5rem; font-family: 'Oswald', sans-serif; color: #fff; }
+
+        /* --- 右側 2/3：固定菜單區 --- */
+        .menu-section {
+            width: 66.66%;
+            height: 100%;
+            padding: 40px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-header {
+            font-size: 2.5rem; font-weight: 900; margin-bottom: 30px;
+            border-bottom: 3px solid var(--primary-gold);
+            padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* 網格佈局：3欄 x 2列 (可根據需要調整) */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-gap: 20px;
+            flex-grow: 1;
+        }
+
+        .menu-item {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+
+        .menu-item-img {
+            width: 100%; height: 140px; border-radius: 8px; object-fit: cover; margin-bottom: 10px;
+        }
+
+        .menu-item-name { font-size: 1.4rem; font-weight: bold; margin-bottom: 5px; }
+        .menu-item-price { font-size: 1.6rem; color: var(--primary-gold); font-family: 'Oswald', sans-serif; }
         
-        /* 閃爍動畫 */
-        .flash { animation: flashEffect 0.5s; }
-        @keyframes flashEffect { 0% { background: var(--bg-dark); } 50% { background: #6d4c3d; } 100% { background: inherit; } }
+        /* 動畫 Class */
+        .fade-out { opacity: 0; transform: scale(1.05); }
+        .fade-in { opacity: 1; transform: scale(1); }
+
     </style>
 </head>
 <body>
 
-    <div id="container">
-        <div class="food-section"><img id="bentoImg" src="" alt="商品圖片"></div>
-        <div class="info-panel" id="infoPanel">
-            <h1 id="foodName">讀取中...</h1>
-            <div class="price-tag" id="foodPrice">--</div>
-            <div class="description" id="foodDesc">正在連線至雲端資料庫...</div>
-            
-            <div class="vote-counter">
-                👍 <span id="count">0</span> <span style="font-size: 0.6em;">人推薦</span>
+    <div id="main-container">
+        <div class="carousel-section">
+            <div class="hero-image-wrap">
+                <img id="hero-img" src="" alt="大圖">
             </div>
+            <div class="hero-info">
+                <div id="hero-tag">店長推薦</div>
+                <h1 id="hero-name">載入中...</h1>
+                <div id="hero-price">$-</div>
+            </div>
+        </div>
 
-            <div id="statusText">系統就緒</div>
+        <div class="menu-section">
+            <div class="menu-header">
+                <span>MENU 菜單精選</span>
+                <span style="font-size: 1rem; color: #888;" id="clock">00:00:00</span>
+            </div>
+            <div class="menu-grid" id="menu-grid">
+                </div>
         </div>
     </div>
 
-    <video id="camera-view" autoplay playsinline></video>
-
     <script>
-        // ==========================================
-        // const GAS_URL = 'https://script.google.com/macros/s/AKfycbzlO2zdyeGiS2obOLYon-ewthDwV38mo4ZiWvXGawftMe8RtyOOgmp3ncYJKO_dvzA7/exec
-?type=json';
-        // ==========================================
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbz1O2zdyeGiS2obOLYon-ewthDwV38mo4ZiWvXGawftMe8RtyO0Gmp3ncYJKO_dvzA7/exec?type=json'; 
+        // 🚨 重要：請在此貼入你的 Web App 網址 (?type=json)
+        const API_URL = "https://script.google.com/macros/s/AKfycbx7vOlxK0n7k0X91hr0lhE86X07MIFVJ0R30tflX2eLcoBijbd8HP_K_70NzSGP-qjh/exec?type=json";
+        
+        let allItems = [];
+        let carouselIndex = 0;
 
-        let menuData = [];
-        let currentIndex = 0;
-        let isCoolingDown = false;
-        let isSwipeLocked = false;
-        let xBuffer = [];
+        async function init() {
+            await refreshData();
+            // 每 10 秒更換一次左側大圖
+            setInterval(rotateCarousel, 8000);
+            // 每 30 秒重新抓取一次後端資料（確保同步）
+            setInterval(refreshData, 30000);
+            // 時鐘
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            }, 1000);
+        }
 
-        const bentoImg = document.getElementById('bentoImg');
-        const foodName = document.getElementById('foodName');
-        const foodPrice = document.getElementById('foodPrice');
-        const foodDesc = document.getElementById('foodDesc');
-        const countDisplay = document.getElementById('count');
-        const statusText = document.getElementById('statusText');
-
-        // 從雲端抓取資料
-        async function fetchCloudData() {
+        async function refreshData() {
             try {
-                statusText.innerText = "🔄 正在更新雲端菜單...";
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                if (data && data.length > 0) {
-                    menuData = data;
-                    updateDisplay();
-                    statusText.innerText = "✅ 雲端連線正常";
+                const res = await fetch(API_URL);
+                allItems = await res.json();
+                if (allItems.length > 0) {
+                    renderMenuGrid();
+                    if (carouselIndex === 0) rotateCarousel(); // 第一次立即執行
                 }
-            } catch (err) {
-                statusText.innerText = "❌ 無法讀取雲端資料";
-                console.error(err);
+            } catch (e) {
+                console.error("資料抓取失敗:", e);
             }
         }
 
-        function updateDisplay() {
-            if (menuData.length === 0) return;
-            const item = menuData[currentIndex];
-            bentoImg.style.opacity = 0;
-            setTimeout(() => {
-                bentoImg.src = item.img;
-                foodName.innerText = item.Name;
-                foodPrice.innerText = "NT$ " + (item.Price || "--");
-                foodDesc.innerText = item.Description || "";
-                countDisplay.innerText = item.Votes || 0;
-                bentoImg.style.opacity = 1;
-            }, 500);
-        }
-
-        // 頁面輪播控制
-        function changePage(direction) {
-            if (isSwipeLocked || menuData.length <= 1) return;
-            isSwipeLocked = true;
-            currentIndex = (direction === 'next') ? (currentIndex + 1) % menuData.length : (currentIndex - 1 + menuData.length) % menuData.length;
-            updateDisplay();
-            setTimeout(() => { isSwipeLocked = false; }, 1000);
-        }
-
-        // 投票特效
-        function triggerVote() {
-            if (isCoolingDown) return;
-            isCoolingDown = true;
-            confetti({ particleCount: 100, spread: 70, origin: { x: 0.8, y: 0.5 } });
-            document.getElementById('infoPanel').classList.add('flash');
-            setTimeout(() => document.getElementById('infoPanel').classList.remove('flash'), 500);
+        // 渲染右側網格
+        function renderMenuGrid() {
+            const grid = document.getElementById('menu-grid');
+            grid.innerHTML = "";
             
-            // 提示用戶
-            statusText.innerText = "💖 感謝你的推薦！";
-            setTimeout(() => { 
-                isCoolingDown = false; 
-                statusText.innerText = "✅ 雲端連線正常";
-            }, 3000);
+            // 展示前 6-9 個項目到菜單區
+            allItems.slice(0, 9).forEach(item => {
+                const card = document.createElement('div');
+                card.className = "menu-item";
+                card.innerHTML = `
+                    <img class="menu-item-img" src="https://drive.google.com/thumbnail?sz=w400&id=${item.imageid}">
+                    <div class="menu-item-name">${item.name}</div>
+                    <div class="menu-item-price">NT$ ${item.price}</div>
+                `;
+                grid.appendChild(card);
+            });
         }
 
-        // MediaPipe 手勢偵測邏輯 (與先前相同)
-        const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-        hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-        hands.onResults((results) => {
-            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                const lm = results.multiHandLandmarks[0];
-                const x = lm[9].x;
-                xBuffer.push(x);
-                if (xBuffer.length > 5) xBuffer.shift();
-                if (!isSwipeLocked && xBuffer.length >= 5) {
-                    const deltaX = xBuffer[xBuffer.length - 1] - xBuffer[0];
-                    if (deltaX > 0.15) changePage('prev');
-                    else if (deltaX < -0.15) changePage('next');
-                }
-                // 比讚偵測
-                const isThumbUp = lm[4].y < lm[2].y && lm[4].y < lm[5].y;
-                if (isThumbUp && lm[8].y > lm[6].y && lm[12].y > lm[10].y) triggerVote();
-            }
-        });
+        // 左側輪播邏輯
+        function rotateCarousel() {
+            if (allItems.length === 0) return;
+            
+            const item = allItems[carouselIndex % allItems.length];
+            carouselIndex++;
 
-        const camera = new Camera(document.getElementById('camera-view'), {
-            onFrame: async () => { await hands.send({image: document.getElementById('camera-view')}); },
-            width: 640, height: 480
-        });
+            const img = document.getElementById('hero-img');
+            const name = document.getElementById('hero-name');
+            const price = document.getElementById('hero-price');
+            const tag = document.getElementById('hero-tag');
 
-        // 啟動
-        fetchCloudData();
-        camera.start();
-        setInterval(fetchCloudData, 600000); // 每 10 分鐘自動同步一次雲端
+            // 切換動畫
+            img.style.opacity = 0;
+            setTimeout(() => {
+                img.src = `https://drive.google.com/thumbnail?sz=w1920&id=${item.imageid}`;
+                name.innerText = item.name;
+                price.innerText = `NT$ ${item.price}`;
+                tag.innerText = item.tag || "今日推薦";
+                img.onload = () => img.style.opacity = 1;
+            }, 400);
+        }
+
+        init();
     </script>
 </body>
 </html>

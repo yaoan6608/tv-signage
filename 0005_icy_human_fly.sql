@@ -1,0 +1,1 @@
+ALTER TABLE `products` ADD `category` enum('food','beverage','dessert','restaurant','apparel','beauty','home','electronics') DEFAULT 'food' NOT NULL;
